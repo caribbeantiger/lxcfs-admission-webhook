@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/api/admission/v1beta1"
+	"k8s.io/api/admission/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -143,7 +143,7 @@ var volumesTemplate = []corev1.Volume{
 }
 
 // main mutation process
-func (whsvr *WebhookServer) mutatePod(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (whsvr *WebhookServer) mutatePod(ar *v1.AdmissionReview) *v1.AdmissionResponse {
 	req := ar.Request
 	var (
 		objectMeta                      *metav1.ObjectMeta
@@ -157,7 +157,7 @@ func (whsvr *WebhookServer) mutatePod(ar *v1beta1.AdmissionReview) *v1beta1.Admi
 
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		glog.Errorf("Could not unmarshal raw object to pod: %v", err)
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -167,24 +167,24 @@ func (whsvr *WebhookServer) mutatePod(ar *v1beta1.AdmissionReview) *v1beta1.Admi
 
 	if !mutationRequired(ignoredNamespaces, objectMeta) {
 		glog.Infof("Skipping validation for %s/%s due to policy check", resourceNamespace, resourceName)
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
 	patchBytes, err := createPodPatch(&pod)
 	if err != nil {
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
 		}
 	}
 
-	patchType := v1beta1.PatchTypeJSONPatch
+	patchType := v1.PatchTypeJSONPatch
 
 	glog.Infof("AdmissionResponse: patch=%v\n", string(patchBytes))
-	return &v1beta1.AdmissionResponse{
+	return &v1.AdmissionResponse{
 		UID:       req.UID,
 		Allowed:   true,
 		Patch:     patchBytes,
@@ -268,8 +268,8 @@ func createPodPatch(pod *corev1.Pod) ([]byte, error) {
 }
 
 // validate deployments and services
-func (whsvr *WebhookServer) validatePod(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
+func (whsvr *WebhookServer) validatePod(ar *v1.AdmissionReview) *v1.AdmissionResponse {
+	return &v1.AdmissionResponse{
 		Allowed: true,
 	}
 }
